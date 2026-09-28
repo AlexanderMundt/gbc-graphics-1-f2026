@@ -6,6 +6,7 @@
 #include <iostream>
 
 void APIENTRY DebugCallback(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char* message, const void* userParam);
+void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 int main(void)
 {
@@ -25,6 +26,8 @@ int main(void)
     GLFWwindow* window = glfwCreateWindow(1600, 900, "Graphics 1", nullptr, nullptr);
     assert(window != nullptr);
 
+    glfwSetKeyCallback(window, KeyCallback);
+
     glfwMakeContextCurrent(window);
     assert(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress) == true);
 
@@ -38,9 +41,9 @@ int main(void)
     // Face-culling is disabled by default, but we should remember that OpenGL defines front-faces as CCW winding-order
     Vector3 triangle_positions[] =
     {
-        {  0.0f,  0.5f, 0.0 },
-        { -0.5f, -0.5f, 0.0 },
-        {  0.5f, -0.5f, 0.0 }
+        {  0.0f,  0.5f, 0.0f },
+        { -0.5f, -0.5f, 0.0f },
+        {  0.5f, -0.5f, 0.0f }
     };
 
     Vector3 triangle_colors[] =
@@ -136,6 +139,14 @@ int main(void)
 
     glfwTerminate();
     return 0;
+}
+
+void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
 }
 
 void APIENTRY DebugCallback(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char* message, const void* userParam)
