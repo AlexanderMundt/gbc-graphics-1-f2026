@@ -8,8 +8,29 @@
 void APIENTRY DebugCallback(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char* message, const void* userParam);
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
+struct App
+{
+    int object_index;
+};
+
+struct DrawCall
+{
+    GLuint shader;
+    GLuint vao;
+
+};
+
+void DrawObject0(App* app, DrawCall draw);
+void DrawObject1(App* app, DrawCall draw);
+void DrawObject2(App* app, DrawCall draw);
+void DrawObject3(App* app, DrawCall draw);
+void DrawObject4(App* app, DrawCall draw);
+
 int main(void)
 {
+    App app{};
+    DrawCall draw0{}, draw1{}, draw2{}, draw3{}, draw4{};
+
     assert(glfwInit() == GLFW_TRUE);
 
     // Request certain OpenGL features
@@ -26,6 +47,7 @@ int main(void)
     GLFWwindow* window = glfwCreateWindow(1600, 900, "Graphics 1", nullptr, nullptr);
     assert(window != nullptr);
 
+    glfwSetWindowUserPointer(window, &app);
     glfwSetKeyCallback(window, KeyCallback);
 
     glfwMakeContextCurrent(window);
@@ -75,8 +97,9 @@ int main(void)
 
     glBindVertexArray(GL_NONE);                                 // "Stop recording vertex buffer state"
 
-    const char* vertex_shader_source[] = 
+    const char* vertex_shader_source[] =
     {
+        "#version 430 core\n"
         "layout(location = 0) in vec3 vertex_position;"
         "layout(location = 1) in vec3 vertex_colour;"
         "out vec3 colour;"
@@ -88,6 +111,7 @@ int main(void)
 
     const char* fragment_shader_source[] =
     {
+        "#version 430 core\n"
         "in vec3 colour;"
         "out vec4 frag_colour;"
         "void main() {"
@@ -124,14 +148,46 @@ int main(void)
     glAttachShader(shader_program, fragment_shader_handle);
     glLinkProgram(shader_program);
 
+    draw1.vao = triangle_vao;
+    draw1.shader = shader_program;
+    // You will need to set draw0, draw2, draw3 and draw4's attributes accordingly!
+
+    // Next week: loading shaders from an external file, and sending dynamic data (uniforms) to shaders!
+    app.object_index = 1;
     while (!glfwWindowShouldClose(window))
     {
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        switch (app.object_index)
+        {
+        case 0:
+        {
+            DrawObject0(&app, draw0);
+            break;
+        }
 
-        glUseProgram(shader_program);
-        glBindVertexArray(triangle_vao);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        case 1:
+        {
+            DrawObject1(&app, draw1);
+            break;
+        }
+
+        case 2:
+        {
+            DrawObject2(&app, draw2);
+            break;
+        }
+
+        case 3:
+        {
+            DrawObject3(&app, draw3);
+            break;
+        }
+
+        case 4:
+        {
+            DrawObject4(&app, draw4);
+            break;
+        }
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -143,10 +199,78 @@ int main(void)
 
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+    App* app = (App*)glfwGetWindowUserPointer(window);
+
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
+
+    if (key == GLFW_KEY_TAB && action == GLFW_PRESS)
+    {
+        // Bound our array to be [0..4]
+        ++app->object_index %= 5;
+    }
+}
+
+// 1) White triangle
+void DrawObject0(App* app, DrawCall draw)
+{
+    assert(app->object_index == 0);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(draw.shader);
+    glBindVertexArray(draw.vao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+}
+
+// 2) Rainbow triangle
+void DrawObject1(App* app, DrawCall draw)
+{
+    assert(app->object_index == 1);
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(draw.shader);
+    glBindVertexArray(draw.vao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+}
+
+// 3) Triangle whose colour changes over time
+void DrawObject2(App* app, DrawCall draw)
+{
+    assert(app->object_index == 2);
+    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(draw.shader);
+    glBindVertexArray(draw.vao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+}
+
+// 4) Triangle translating between x = -1 and x = +1 (doesn't need to start at x = -1)
+void DrawObject3(App* app, DrawCall draw)
+{
+    assert(app->object_index == 3);
+    glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(draw.shader);
+    glBindVertexArray(draw.vao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+}
+
+// 5) Triangle rotating continuously counter-clockwise about the z-axis
+void DrawObject4(App* app, DrawCall draw)
+{
+    assert(app->object_index == 4);
+    glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(draw.shader);
+    glBindVertexArray(draw.vao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
 void APIENTRY DebugCallback(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char* message, const void* userParam)
