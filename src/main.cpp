@@ -72,27 +72,27 @@ int main(void)
 
     glBindVertexArray(GL_NONE);                                 // "Stop recording vertex buffer state"
 
-    static const char* vertex_shader_source =
-    R"(
-        #version 430 core
-        layout(location = 0) in vec3 vertex_position;
-        layout(location = 1) in vec3 vertex_colour;
-        out vec3 colour;
-        void main() {
-        colour = vertex_colour;
-        gl_Position = vec4(vertex_position, 1.0);
-        }
-    )";
+    const char* vertex_shader_source[] =
+    {
+        "#version 430 core\n"
+        "layout(location = 0) in vec3 vertex_position;"
+        "layout(location = 1) in vec3 vertex_colour;"
+        "out vec3 colour;"
+        "void main() {"
+        "colour = vertex_colour;"
+        "gl_Position = vec4(vertex_position, 1.0);"
+        "}"
+    };
 
-    static const char* fragment_shader_source =
-    R"(
-        #version 430 core
-        in vec3 colour;
-        out vec4 frag_colour;
-        void main() {
-        frag_colour = vec4(colour, 1.0);
-        }
-    )";
+    const char* fragment_shader_source[] =
+    {
+        "#version 430 core\n"
+        "in vec3 colour;"
+        "out vec4 frag_colour;"
+        "void main() {"
+        "frag_colour = vec4(colour, 1.0);"
+        "}"
+    };
 
     GLint compile_status = -1;
     GLchar compile_log[512];
@@ -100,7 +100,7 @@ int main(void)
     GLuint vertex_shader_handle = glCreateShader(GL_VERTEX_SHADER);
     GLuint fragment_shader_handle = glCreateShader(GL_FRAGMENT_SHADER);
 
-    glShaderSource(vertex_shader_handle, 1, &vertex_shader_source, NULL);
+    glShaderSource(vertex_shader_handle, 1, vertex_shader_source, NULL);
     glCompileShader(vertex_shader_handle);
     glGetShaderiv(vertex_shader_handle, GL_COMPILE_STATUS, &compile_status);
     if (!compile_status)
@@ -109,7 +109,7 @@ int main(void)
         std::cout << "Shader failed to compile: \n" << compile_log << std::endl;
     }
 
-    glShaderSource(fragment_shader_handle, 1, &fragment_shader_source, NULL);
+    glShaderSource(fragment_shader_handle, 1, fragment_shader_source, NULL);
     glCompileShader(fragment_shader_handle);
     glGetShaderiv(fragment_shader_handle, GL_COMPILE_STATUS, &compile_status);
     if (!compile_status)
