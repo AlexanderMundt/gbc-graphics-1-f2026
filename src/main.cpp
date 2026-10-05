@@ -4,6 +4,7 @@
 #include <raymath.h>
 #include <cassert>
 #include <iostream>
+#include "Shader.h"
 
 void APIENTRY DebugCallback(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char* message, const void* userParam);
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -17,7 +18,6 @@ struct DrawCall
 {
     GLuint shader;
     GLuint vao;
-
 };
 
 void DrawObject0(App* app, DrawCall draw);
@@ -97,56 +97,9 @@ int main(void)
 
     glBindVertexArray(GL_NONE);                                 // "Stop recording vertex buffer state"
 
-    const char* vertex_shader_source[] =
-    {
-        "#version 430 core\n"
-        "layout(location = 0) in vec3 vertex_position;"
-        "layout(location = 1) in vec3 vertex_colour;"
-        "out vec3 colour;"
-        "void main() {"
-        "colour = vertex_colour;"
-        "gl_Position = vec4(vertex_position, 1.0);"
-        "}"
-    };
-
-    const char* fragment_shader_source[] =
-    {
-        "#version 430 core\n"
-        "in vec3 colour;"
-        "out vec4 frag_colour;"
-        "void main() {"
-        "frag_colour = vec4(colour, 1.0);"
-        "}"
-    };
-
-    GLint compile_status = -1;
-    GLchar compile_log[512];
-
-    GLuint vertex_shader_handle = glCreateShader(GL_VERTEX_SHADER);
-    GLuint fragment_shader_handle = glCreateShader(GL_FRAGMENT_SHADER);
-
-    glShaderSource(vertex_shader_handle, 1, vertex_shader_source, NULL);
-    glCompileShader(vertex_shader_handle);
-    glGetShaderiv(vertex_shader_handle, GL_COMPILE_STATUS, &compile_status);
-    if (!compile_status)
-    {
-        glGetShaderInfoLog(vertex_shader_handle, 512, NULL, compile_log);
-        std::cout << "Shader failed to compile: \n" << compile_log << std::endl;
-    }
-
-    glShaderSource(fragment_shader_handle, 1, fragment_shader_source, NULL);
-    glCompileShader(fragment_shader_handle);
-    glGetShaderiv(fragment_shader_handle, GL_COMPILE_STATUS, &compile_status);
-    if (!compile_status)
-    {
-        glGetShaderInfoLog(fragment_shader_handle, 512, NULL, compile_log);
-        std::cout << "Shader failed to compile: \n" << compile_log << std::endl;
-    }
-
-    GLuint shader_program = glCreateProgram();
-    glAttachShader(shader_program, vertex_shader_handle);
-    glAttachShader(shader_program, fragment_shader_handle);
-    glLinkProgram(shader_program);
+    GLuint vs_shader = LoadShader(GL_VERTEX_SHADER, "./assets/shaders/a1_triangle.vert");
+    GLuint fs_shader = LoadShader(GL_FRAGMENT_SHADER, "./assets/shaders/a1_triangle.frag");
+    GLuint shader_program = LoadProgram(vs_shader, fs_shader);
 
     draw1.vao = triangle_vao;
     draw1.shader = shader_program;
@@ -233,6 +186,10 @@ void DrawObject1(App* app, DrawCall draw)
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(draw.shader);
+    Matrix m = MatrixTranslate(0.5f, sinf(glfwGetTime()), 0.0f);
+    GLuint loc = glad_glGetUniformLocation(draw.shader, "transform");
+    glUniformMatrix4fv(loc, 1, GL_FALSE, MatrixToFloat(m));
+
     glBindVertexArray(draw.vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
