@@ -20,11 +20,11 @@ struct DrawCall
     GLuint vao;
 };
 
-void DrawObject0(App* app, DrawCall draw);
-void DrawObject1(App* app, DrawCall draw);
-void DrawObject2(App* app, DrawCall draw);
-void DrawObject3(App* app, DrawCall draw);
-void DrawObject4(App* app, DrawCall draw);
+void DrawObject0(App* app, DrawCall draw, Matrix* mvp);
+void DrawObject1(App* app, DrawCall draw, Matrix* mvp);
+void DrawObject2(App* app, DrawCall draw, Matrix* mvp);
+void DrawObject3(App* app, DrawCall draw, Matrix* mvp);
+void DrawObject4(App* app, DrawCall draw, Matrix* mvp);
 
 int main(void)
 {
@@ -44,7 +44,7 @@ int main(void)
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 #endif
 
-    GLFWwindow* window = glfwCreateWindow(1600, 900, "Graphics 1", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(800, 800, "Graphics 1", nullptr, nullptr);
     assert(window != nullptr);
 
     glfwSetWindowUserPointer(window, &app);
@@ -75,71 +75,143 @@ int main(void)
         {  0.0f, 0.0f, 1.0 }
     };
 
-    GLuint triangle_vao = GL_NONE;
+    Vector3 triangle_white[] =
+    {
+        {  1.0f, 1.0f, 1.0 },
+        {  1.0f, 1.0f, 1.0 },
+        {  1.0f, 1.0f, 1.0 }
+    };
+
+	//Vertex Array Objects
+    GLuint triangle_rainbow_vao = GL_NONE;  //VAO1
+	GLuint triangle_white_vao = GL_NONE;    //VAO2
+
+    //VAO1
+    glGenVertexArrays(1, &triangle_rainbow_vao);
+    glBindVertexArray(triangle_rainbow_vao);      
+
+	//Pos for VAO1
     GLuint triangle_positions_vbo = GL_NONE;
-    GLuint triangle_colors_vbo = GL_NONE;
 
-    glGenVertexArrays(1, &triangle_vao);
-    glGenBuffers(1, &triangle_positions_vbo);
-    glGenBuffers(1, &triangle_colors_vbo);
-
-    glBindVertexArray(triangle_vao);                            // "Record the following state of vertex buffers within this vertex array"
-
-    glBindBuffer(GL_ARRAY_BUFFER, triangle_positions_vbo);      // The following array (vertex) buffer will be described (triangle_positions_vbo):
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);// Index 0, 3 components, float data, no implicit normalization, no stride, no offset
-    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), triangle_positions, GL_STATIC_DRAW); // Transfer memory of triangle_positions into currently bound vbo
+    glGenBuffers(1, &triangle_positions_vbo); //1 GEN
+    glBindBuffer(GL_ARRAY_BUFFER, triangle_positions_vbo); //2 BIND                                     //The following array (vertex) buffer will be described (triangle_positions_vbo):
+    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), triangle_positions, GL_STATIC_DRAW); //3 DATA    //Transfer memory of triangle_positions into currently bound vbo
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr); //4 ATTRIB                             //Index 0, 3 components, float data, no implicit normalization, no stride, no offset
     glEnableVertexAttribArray(0);
 
+	//Colors for VAO1
+    GLuint triangle_colors_vbo = GL_NONE;
+
+    glGenBuffers(1, &triangle_colors_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, triangle_colors_vbo);         // The following array (vertex) buffer will be described (triangle_colors_vbo):
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);// Index 1, 3 components, float data, no implicit normalization, no stride, no offset
     glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), triangle_colors, GL_STATIC_DRAW); // Transfer memory of triangle_colors into currently bound vbo
     glEnableVertexAttribArray(1);
 
+    //VAO2
+    glGenVertexArrays(1, &triangle_white_vao);
+    glBindVertexArray(triangle_white_vao);                                                                    //"Record the following state of vertex buffers within this vertex array"
+
+    //Pos for VAO2
+    triangle_positions_vbo = GL_NONE;
+
+    glGenBuffers(1, &triangle_positions_vbo); //1 GEN
+    glBindBuffer(GL_ARRAY_BUFFER, triangle_positions_vbo); //2 BIND
+    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), triangle_positions, GL_STATIC_DRAW); //3 DATA
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr); //4 ATTRIB
+    glEnableVertexAttribArray(0);
+
+    //Colors for VAO2
+    GLuint triangle_white_vbo = GL_NONE;
+
+    glGenBuffers(1, &triangle_white_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, triangle_white_vbo);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), triangle_white, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(1);
+
+    //End
     glBindVertexArray(GL_NONE);                                 // "Stop recording vertex buffer state"
 
     GLuint vs_shader = LoadShader(GL_VERTEX_SHADER, "./assets/shaders/a1_triangle.vert");
     GLuint fs_shader = LoadShader(GL_FRAGMENT_SHADER, "./assets/shaders/a1_triangle.frag");
     GLuint shader_program = LoadProgram(vs_shader, fs_shader);
 
-    draw1.vao = triangle_vao;
-    draw1.shader = shader_program;
-    // You will need to set draw0, draw2, draw3 and draw4's attributes accordingly!
+    draw0.vao = triangle_white_vao;
+    draw0.shader = shader_program;
 
-    // Next week: loading shaders from an external file, and sending dynamic data (uniforms) to shaders!
-    app.object_index = 1;
+    draw1.vao = triangle_rainbow_vao;
+    draw1.shader = shader_program;
+
+    draw2.vao = triangle_rainbow_vao;
+    draw2.shader = shader_program;
+
+    draw3.vao = triangle_rainbow_vao;
+    draw3.shader = shader_program;
+
+    draw4.vao = triangle_rainbow_vao;
+    draw4.shader = shader_program;
+
+    Matrix world = MatrixIdentity();
+    Matrix view = MatrixLookAt({ 0.0f, 0.0f, 10.0f }, { 0.0f, 0.0f, 0.0f }, Vector3UnitY);
+    Matrix proj = MatrixOrtho(-2.0f, 2.0f, -2.0f, 2.0f, 0.1f, 100.0f);
+    Matrix mvp = world * view * proj;
+
+    float time = 0.0f;
+    app.object_index = 0;
+
     while (!glfwWindowShouldClose(window))
     {
+        time = static_cast<float>(glfwGetTime());
+
+        //Revert the world matrix
+        world = MatrixIdentity();
+        mvp = world * view * proj;
+
         switch (app.object_index)
         {
-        case 0:
-        {
-            DrawObject0(&app, draw0);
-            break;
-        }
+            case 0:
+            {
+                //1) White triangle
+                DrawObject0(&app, draw0, &mvp);
+                break;
+            }
 
-        case 1:
-        {
-            DrawObject1(&app, draw1);
-            break;
-        }
+            case 1:
+            {
+                //2) Rainbow triangle
+                DrawObject1(&app, draw1, &mvp);
+                break;
+            }
 
-        case 2:
-        {
-            DrawObject2(&app, draw2);
-            break;
-        }
+            case 2:
+            {
+                //3) Triangle whose colour changes over time
+                DrawObject2(&app, draw2, &mvp);
+                break;
+            }
 
-        case 3:
-        {
-            DrawObject3(&app, draw3);
-            break;
-        }
+            case 3:
+            {
+                //4) Triangle translating between x = -1 and x = +1 (doesn't need to start at x = -1)
+				//Translate
+				world = MatrixTranslate(sinf(time), 0.0f, 0.0f);
+                mvp = world * view * proj;
 
-        case 4:
-        {
-            DrawObject4(&app, draw4);
-            break;
-        }
+                DrawObject3(&app, draw3, &mvp);
+                break;
+            }
+
+            case 4:
+            {
+                //5) Triangle rotating continuously counter-clockwise about the z-axis
+                //Rotate
+				world = MatrixRotateZ(time * 0.5f + 0.5f);
+                mvp = world * view * proj;
+
+                DrawObject4(&app, draw4, &mvp);
+                break;
+            }
         }
 
         glfwSwapBuffers(window);
@@ -167,65 +239,99 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 }
 
 // 1) White triangle
-void DrawObject0(App* app, DrawCall draw)
+void DrawObject0(App* app, DrawCall draw, Matrix* mvp)
 {
     assert(app->object_index == 0);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(draw.shader);
+
+    GLint u_mvp = glGetUniformLocation(draw.shader, "u_mvp");
+    glUniformMatrix4fv(u_mvp, 1, GL_FALSE, MatrixToFloat(*mvp));
+
+    GLint u_colour = glGetUniformLocation(draw.shader, "u_colour");
+    glUniform3f(u_colour, 1.0f, 1.0f, 1.0f);
+
     glBindVertexArray(draw.vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
 // 2) Rainbow triangle
-void DrawObject1(App* app, DrawCall draw)
+void DrawObject1(App* app, DrawCall draw, Matrix* mvp)
 {
     assert(app->object_index == 1);
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(draw.shader);
-    Matrix m = MatrixTranslate(0.5f, sinf(glfwGetTime()), 0.0f);
-    GLuint loc = glad_glGetUniformLocation(draw.shader, "transform");
-    glUniformMatrix4fv(loc, 1, GL_FALSE, MatrixToFloat(m));
+
+    GLint u_mvp = glGetUniformLocation(draw.shader, "u_mvp");
+    glUniformMatrix4fv(u_mvp, 1, GL_FALSE, MatrixToFloat(*mvp));
+
+    GLint u_colour = glGetUniformLocation(draw.shader, "u_colour");
+    glUniform3f(u_colour, 1.0f, 1.0f, 1.0f);
 
     glBindVertexArray(draw.vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
 // 3) Triangle whose colour changes over time
-void DrawObject2(App* app, DrawCall draw)
+void DrawObject2(App* app, DrawCall draw, Matrix* mvp)
 {
     assert(app->object_index == 2);
-    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(draw.shader);
+
+    GLint u_mvp = glGetUniformLocation(draw.shader, "u_mvp");
+    glUniformMatrix4fv(u_mvp, 1, GL_FALSE, MatrixToFloat(*mvp));
+
+    GLint u_colour = glGetUniformLocation(draw.shader, "u_colour");
+
+    //Clamp sinf between 0.0f and 1.0f
+	float rgb = 0.5f + (sinf(glfwGetTime()) * 0.5f);
+    glUniform3f(u_colour, rgb, rgb, rgb);
+
     glBindVertexArray(draw.vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
 // 4) Triangle translating between x = -1 and x = +1 (doesn't need to start at x = -1)
-void DrawObject3(App* app, DrawCall draw)
+void DrawObject3(App* app, DrawCall draw, Matrix* mvp)
 {
     assert(app->object_index == 3);
-    glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(draw.shader);
+
+    GLint u_mvp = glGetUniformLocation(draw.shader, "u_mvp");
+    glUniformMatrix4fv(u_mvp, 1, GL_FALSE, MatrixToFloat(*mvp));
+
+    GLint u_colour = glGetUniformLocation(draw.shader, "u_colour");
+    glUniform3f(u_colour, 1.0f, 1.0f, 1.0f);
+
     glBindVertexArray(draw.vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
 // 5) Triangle rotating continuously counter-clockwise about the z-axis
-void DrawObject4(App* app, DrawCall draw)
+void DrawObject4(App* app, DrawCall draw, Matrix* mvp)
 {
     assert(app->object_index == 4);
-    glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(draw.shader);
+
+    GLint u_mvp = glGetUniformLocation(draw.shader, "u_mvp");
+    glUniformMatrix4fv(u_mvp, 1, GL_FALSE, MatrixToFloat(*mvp));
+
+    GLint u_colour = glGetUniformLocation(draw.shader, "u_colour");
+    glUniform3f(u_colour, 1.0f, 1.0f, 1.0f);
+
     glBindVertexArray(draw.vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
