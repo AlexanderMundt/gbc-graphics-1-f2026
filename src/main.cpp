@@ -1,3 +1,9 @@
+/*
+Completed By:   Alexander Mundt 101632886
+Class:          GAME2012
+Professor:      Connor Smiley
+Assignment:     Assignment 1
+*/
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
@@ -93,24 +99,24 @@ int main(void)
 	//Pos for VAO1
     GLuint triangle_positions_vbo = GL_NONE;
 
-    glGenBuffers(1, &triangle_positions_vbo); //1 GEN
-    glBindBuffer(GL_ARRAY_BUFFER, triangle_positions_vbo); //2 BIND                                     //The following array (vertex) buffer will be described (triangle_positions_vbo):
-    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), triangle_positions, GL_STATIC_DRAW); //3 DATA    //Transfer memory of triangle_positions into currently bound vbo
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr); //4 ATTRIB                             //Index 0, 3 components, float data, no implicit normalization, no stride, no offset
+    glGenBuffers(1, &triangle_positions_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, triangle_positions_vbo); //The following array (vertex) buffer will be described (triangle_positions_vbo):
+    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), triangle_positions, GL_STATIC_DRAW); //Transfer memory of triangle_positions into currently bound vbo
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr); //Index 0, 3 components, float data, no implicit normalization, no stride, no offset
     glEnableVertexAttribArray(0);
 
 	//Colors for VAO1
     GLuint triangle_colors_vbo = GL_NONE;
 
     glGenBuffers(1, &triangle_colors_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, triangle_colors_vbo);         // The following array (vertex) buffer will be described (triangle_colors_vbo):
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);// Index 1, 3 components, float data, no implicit normalization, no stride, no offset
-    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), triangle_colors, GL_STATIC_DRAW); // Transfer memory of triangle_colors into currently bound vbo
+    glBindBuffer(GL_ARRAY_BUFFER, triangle_colors_vbo); //The following array (vertex) buffer will be described (triangle_colors_vbo):
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr); //Index 1, 3 components, float data, no implicit normalization, no stride, no offset
+    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(Vector3), triangle_colors, GL_STATIC_DRAW); //Transfer memory of triangle_colors into currently bound vbo
     glEnableVertexAttribArray(1);
 
     //VAO2
     glGenVertexArrays(1, &triangle_white_vao);
-    glBindVertexArray(triangle_white_vao);                                                                    //"Record the following state of vertex buffers within this vertex array"
+    glBindVertexArray(triangle_white_vao); //"Record the following state of vertex buffers within this vertex array"
 
     //Pos for VAO2
     triangle_positions_vbo = GL_NONE;
@@ -131,7 +137,7 @@ int main(void)
     glEnableVertexAttribArray(1);
 
     //End
-    glBindVertexArray(GL_NONE);                                 // "Stop recording vertex buffer state"
+    glBindVertexArray(GL_NONE); //"Stop recording vertex buffer state"
 
     GLuint vs_shader = LoadShader(GL_VERTEX_SHADER, "./assets/shaders/a1_triangle.vert");
     GLuint fs_shader = LoadShader(GL_FRAGMENT_SHADER, "./assets/shaders/a1_triangle.frag");
