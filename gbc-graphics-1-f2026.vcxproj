@@ -91,6 +91,10 @@
   <ItemGroup>
     <ClInclude Include="src\Shader.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="assets\shaders\a2_lines.frag" />
+    <None Include="assets\shaders\a2_lines.vert" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
