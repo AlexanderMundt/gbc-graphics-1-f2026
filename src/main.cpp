@@ -11,6 +11,7 @@ Assignment:     Assignment 2
 #include <cassert>
 #include <iostream>
 #include <vector>
+#include <random>
 #include "Shader.h"
 
 void APIENTRY DebugCallback(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char* message, const void* userParam);
@@ -19,6 +20,25 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 struct App
 {
     int object_index;
+};
+
+//A line can hold 2 Vector3s of data to represent the beginning and end of a line
+struct Line
+{
+    Vector3 begin;
+    Vector3 end;
+
+    Line()
+    {
+        begin = Vector3Zero();
+        end = Vector3Zero();
+    }
+
+    Line(Vector3 b, Vector3 e)
+    {
+        begin = b;
+        end = e;
+    }
 };
 
 int main(void)
@@ -38,7 +58,7 @@ int main(void)
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 #endif
 
-    GLFWwindow* window = glfwCreateWindow(1600, 900, "Graphics 1", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1600, 900, "GAME-2012 Assignment 2 - Alexander Mundt", nullptr, nullptr);
     assert(window != nullptr);
 
     glfwSetWindowUserPointer(window, &app);
@@ -53,43 +73,73 @@ int main(void)
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageCallback(DebugCallback, nullptr);
 #endif
+    //Constants
+    constexpr int VERTICES_PER_SQUARE = 8;
+    constexpr int LINES_PER_SQUARE = 4;
+    constexpr int SQUARE_COUNT = 12;
+    constexpr int TOTAL_VERTEX_COUNT = SQUARE_COUNT * VERTICES_PER_SQUARE;
 
-    const size_t vertex_count = 16;
-
-    float t = -1.0f;
-    std::vector<Vector3> line_positions;
-    line_positions.resize(vertex_count);
-
-    // 4 Horizontal lines
-    for (size_t i = 0; i < vertex_count / 2; i += 2)
+    //Instead of storing raw individual vertices, just store them as lines
+    std::vector<Line> line_positions =
     {
-        t += 0.4f;
-        line_positions[i + 0] = { -1.0f, t, 0.0f };
-        line_positions[i + 1] = { 1.0f, t, 0.0f };
+        //First square of data
+        Line({ -1.0f, -1.0f, 0.0f }, {  1.0f, -1.0f, 0.0f }), //bottom left, bottom right
+        Line({  1.0f, -1.0f, 0.0f }, {  1.0f,  1.0f, 0.0f }), //bottom right, top right
+        Line({  1.0f,  1.0f, 0.0f }, { -1.0f,  1.0f, 0.0f }), //top right, top left
+        Line({ -1.0f,  1.0f, 0.0f }, { -1.0f, -1.0f, 0.0f }), //top left, bottom left
+    };
+
+    //Generate the rest of the lines
+    //Start at the second square because the first one is already present above
+    std::size_t squareOffset;
+    std::vector<Vector3> midpoints;
+    for (std::size_t s = 1; s < SQUARE_COUNT; s++)
+    {
+        //Calculate how far into the buffer we should be looking for our next line
+        squareOffset = (s - 1) * LINES_PER_SQUARE;
+
+        //Clean slate
+        midpoints.clear();
+
+        //For each line we find the midpoint of it
+        for (std::size_t l = 0; l < LINES_PER_SQUARE; l++)
+        {
+            //Get the line to find the midpoint of
+            Line line = line_positions[squareOffset + l];
+
+            //Add that line's midpoint to the list of midpoints
+            midpoints.push_back(Vector3Lerp(line.begin, line.end, 0.5f));
+        }
+
+        //Make the 4 lines based on the midpoints calculated above
+        line_positions.push_back(Line(midpoints[0], midpoints[1]));
+        line_positions.push_back(Line(midpoints[1], midpoints[2]));
+        line_positions.push_back(Line(midpoints[2], midpoints[3]));
+        line_positions.push_back(Line(midpoints[3], midpoints[0]));
     }
 
-    // 4 Vertical lines
-    t = -1.0f;
-    for (size_t i = vertex_count / 2; i < vertex_count; i += 2)
-    {
-        t += 0.4f;
-        line_positions[i + 0] = { t, -1.0f, 0.0f };
-        line_positions[i + 1] = { t,  1.0f, 0.0f };
-    }
-
+    //Line vertex colors
     std::vector<Vector3> line_colors;
-    line_colors.resize(vertex_count);
-    for (size_t i = 0; i < vertex_count / 2; i++)
+
+    //For random colors
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> rgbVal(0, 255);
+
+    //This will add as many vec3 color data elements as we have vertices in the positions buffer
+    //SQUARE_COUNT * VERTICES_PER_SQUARE elements
+    for (int s = 0; s < SQUARE_COUNT; s++)
     {
-        line_colors[i] = { 1.0f, 0.0f, 0.0f };
-    }
-    for (size_t i = vertex_count / 2; i < vertex_count; i++)
-    {
-        line_colors[i] = { 1.0f, 0.0f, 1.0f };
+        float r = rgbVal(gen) / 255.0f;
+        float g = rgbVal(gen) / 255.0f;
+        float b = rgbVal(gen) / 255.0f;
+
+        for (int v = 0; v < VERTICES_PER_SQUARE; v++)
+        {
+            line_colors.push_back(Vector3(r, g, b));
+        }
     }
 
-    assert(vertex_count == line_positions.size() && vertex_count == line_colors.size());
-    
     //Line VAO
     GLuint line_vao = GL_NONE;
     glGenVertexArrays(1, &line_vao);
@@ -98,30 +148,29 @@ int main(void)
     //Line position VBO for line VAO
     GLuint line_positions_vbo = GL_NONE;
     glGenBuffers(1, &line_positions_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, line_positions_vbo);      // The following array (vertex) buffer will be described (triangle_positions_vbo):
+    glBindBuffer(GL_ARRAY_BUFFER, line_positions_vbo);      // The following array (vertex) buffer will be described (line_positions_vbo):
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);// Index 0, 3 components, float data, no implicit normalization, no stride, no offset
-    glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(Vector3), line_positions.data(), GL_STATIC_DRAW); // Transfer memory of triangle_positions into currently bound vbo
+    glBufferData(GL_ARRAY_BUFFER, TOTAL_VERTEX_COUNT * sizeof(Vector3), line_positions.data(), GL_STATIC_DRAW); // Transfer memory of line_positions into currently bound vbo
     glEnableVertexAttribArray(0);
 
     //Line color VBO for line VAO
     GLuint line_colors_vbo = GL_NONE;
     glGenBuffers(1, &line_colors_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, line_colors_vbo);         // The following array (vertex) buffer will be described (triangle_colors_vbo):
+    glBindBuffer(GL_ARRAY_BUFFER, line_colors_vbo);         // The following array (vertex) buffer will be described (line_colors_vbo):
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);// Index 1, 3 components, float data, no implicit normalization, no stride, no offset
-    glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(Vector3), line_colors.data(), GL_STATIC_DRAW); // Transfer memory of triangle_colors into currently bound vbo
+    glBufferData(GL_ARRAY_BUFFER, TOTAL_VERTEX_COUNT * sizeof(Vector3), line_colors.data(), GL_STATIC_DRAW); // Transfer memory of line_colors into currently bound vbo
     glEnableVertexAttribArray(1);
 
     glBindVertexArray(GL_NONE);                                 // "Stop recording vertex buffer state"
-    //-----END NEW-----
 
-    GLuint vs_shader = LoadShader(GL_VERTEX_SHADER, "./assets/shaders/a1_triangle.vert");
-    GLuint fs_shader = LoadShader(GL_FRAGMENT_SHADER, "./assets/shaders/a1_triangle.frag");
+    GLuint vs_shader = LoadShader(GL_VERTEX_SHADER, "./assets/shaders/a2_lines.vert");
+    GLuint fs_shader = LoadShader(GL_FRAGMENT_SHADER, "./assets/shaders/a2_lines.frag");
     GLuint shader_program = LoadProgram(vs_shader, fs_shader);
-
-    //Matrix world = MatrixIdentity();
-    //Matrix view = MatrixLookAt({ 0.0f, 0.0f, 10.0f }, { 0.0f, 0.0f, 0.0f }, Vector3UnitY);
-    //Matrix proj = MatrixOrtho(-2.0f, 2.0f, -2.0f, 2.0f, 0.1f, 100.0f);
-    //Matrix mvp = world * view * proj;
+    
+    Matrix world = MatrixIdentity();
+    Matrix view = MatrixLookAt({ 0.0f, 0.0f, 10.0f }, { 0.0f, 0.0f, 0.0f }, Vector3UnitY);
+    Matrix proj = MatrixOrtho(-1.05f, 1.05f, -1.05f, 1.05f, 0.1f, 100.0f);
+    Matrix mvp = world * view * proj;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -131,11 +180,14 @@ int main(void)
         glUseProgram(shader_program);
         glBindVertexArray(line_vao);
 
-        glLineWidth(2.0f);
-        glDrawArrays(GL_LINES, 0, vertex_count);
+        GLint u_mvp = glGetUniformLocation(shader_program, "u_mvp");
+        glUniformMatrix4fv(u_mvp, 1, GL_FALSE, MatrixToFloat(mvp));
 
-        glPointSize(16.0f);
-        glDrawArrays(GL_POINTS, 0, vertex_count);
+        glLineWidth(2.0f);
+        glDrawArrays(GL_LINES, 0, TOTAL_VERTEX_COUNT);
+
+        glPointSize(10.0f);
+        glDrawArrays(GL_POINTS, 0, TOTAL_VERTEX_COUNT);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
