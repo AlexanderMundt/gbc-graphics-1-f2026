@@ -90,11 +90,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\fast_obj.h" />
+    <ClInclude Include="inc\raymath.h" />
     <ClInclude Include="src\Shader.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="assets\shaders\a1_triangle.frag" />
+    <None Include="assets\shaders\a1_triangle.vert" />
     <None Include="assets\shaders\a2_lines.frag" />
     <None Include="assets\shaders\a2_lines.vert" />
+    <None Include="assets\shaders\a3_mesh.frag" />
+    <None Include="assets\shaders\a3_mesh.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

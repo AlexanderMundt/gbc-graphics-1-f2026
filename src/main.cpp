@@ -17,16 +17,32 @@
 void APIENTRY DebugCallback(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char* message, const void* userParam);
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
+enum ShaderVertexAttribute : int
+{
+    ATTRIBUTE_POSITIONS,
+    ATTRIBUTE_NORMALS,
+    ATTRIBUTE_TCOORDS
+};
+
 struct App
 {
     GLFWwindow* window;
     int object_index;
+    int attribute_color;
+    int color_space;
 };
 
 struct Mesh
 {
     std::vector<Vector3> positions;
-    //fastObjMesh cpu_mesh;
+    std::vector<Vector3> normals;
+    std::vector<Vector2> tcoords;
+    int index_count;
+
+    GLuint vao;
+    GLuint vbo_positions;
+    GLuint vbo_tcoords;
+    GLuint vbo_normals;
 };
 
 void LoadMesh(Mesh* mesh, const char* path)
@@ -34,16 +50,35 @@ void LoadMesh(Mesh* mesh, const char* path)
     fastObjMesh* obj_mesh;
     obj_mesh = fast_obj_read(path);
 
-    mesh->positions.resize(obj_mesh->index_count);
+    mesh->index_count = obj_mesh->index_count;
+    mesh->positions.resize(mesh->index_count);
 
-    for (fastObjUInt i = 0; i < obj_mesh->index_count; i++)
+    for (fastObjUInt i = 0; i < mesh->index_count; i++)
     {
         Vector3* obj_positions_buffer = (Vector3*)obj_mesh->positions;
         fastObjUInt obj_position_index = obj_mesh->indices[i].p;
         mesh->positions[i] = obj_positions_buffer[obj_position_index];
+
+        // TODO -- sample normal indices and add them to the mesh's normals buffer
+        // TODO -- sample tcoord indices and add them to the mesh's tcoords buffer
     }
 
     fast_obj_destroy(obj_mesh);
+
+    glGenVertexArrays(1, &mesh->vao);
+    glGenBuffers(1, &mesh->vbo_positions);
+    // TODO -- generate vbo handles for mesh normals and mesh tcoords
+
+    glBindVertexArray(mesh->vao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo_positions);
+    glVertexAttribPointer(ATTRIBUTE_POSITIONS, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glBufferData(GL_ARRAY_BUFFER, mesh->positions.size() * sizeof(Vector3), mesh->positions.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+
+    // TODO -- describe vertex buffers for normals (1) and tcoords (2)
+
+    glBindVertexArray(GL_NONE);
 }
 
 void UnloadMesh(Mesh* mesh)
@@ -58,23 +93,9 @@ int main()
     App app{};
     Init(&app);
 
-    Mesh plane;
-    LoadMesh(&plane, "./assets/meshes/monkey.obj");
-
-    GLuint mesh_vao = GL_NONE;
-    GLuint mesh_positions_vbo = GL_NONE;
-
-    glGenVertexArrays(1, &mesh_vao);
-    glGenBuffers(1, &mesh_positions_vbo);
-
-    glBindVertexArray(mesh_vao);
-
-    glBindBuffer(GL_ARRAY_BUFFER, mesh_positions_vbo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glBufferData(GL_ARRAY_BUFFER, plane.positions.size() * sizeof(Vector3), plane.positions.data(), GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-
-    glBindVertexArray(GL_NONE);                                 // "Stop recording vertex buffer state"
+    Mesh meshes[2];
+    LoadMesh(&meshes[0], "./assets/meshes/plane.obj");
+    LoadMesh(&meshes[1], "./assets/meshes/head.obj");
 
     GLuint vs_shader = LoadShader(GL_VERTEX_SHADER, "./assets/shaders/a3_mesh.vert");
     GLuint fs_shader = LoadShader(GL_FRAGMENT_SHADER, "./assets/shaders/a3_mesh.frag");
@@ -87,15 +108,20 @@ int main()
         glClearDepth(1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        Matrix world = MatrixScale(0.5f, 0.5f, 0.5f) * MatrixRotateY(glfwGetTime() * 100.0f * DEG2RAD);
+        Matrix world = MatrixIdentity();
 
         glUseProgram(shader_program);
-        GLint loc = glGetUniformLocation(shader_program, "u_transform");
-        glUniformMatrix4fv(loc, 1, GL_FALSE, MatrixToFloat(world));
+        GLint loc_transform = glGetUniformLocation(shader_program, "u_transform");
+        GLint loc_style = glGetUniformLocation(shader_program, "u_style");
+        GLint loc_color_space = glGetUniformLocation(shader_program, "u_color_space");
+        glUniformMatrix4fv(loc_transform, 1, GL_FALSE, MatrixToFloat(world));
+        glUniform1i(loc_style, app.attribute_color);
+        glUniform1i(loc_color_space, app.color_space);
 
-        glBindVertexArray(mesh_vao);
+        const Mesh& mesh = meshes[app.object_index];
+        glBindVertexArray(mesh.vao);
 
-        glDrawArrays(GL_TRIANGLES, 0, plane.positions.size());
+        glDrawArrays(GL_TRIANGLES, 0, mesh.index_count);
 
         glfwSwapBuffers(app.window);
         glfwPollEvents();
@@ -116,8 +142,19 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
     if (key == GLFW_KEY_TAB && action == GLFW_PRESS)
     {
-        // Bound our array to be [0..4]
-        ++app->object_index %= 5;
+        // Bound our array to be [0..1]
+        ++app->object_index %= 2;
+    }
+
+    if (key == GLFW_KEY_C && action == GLFW_PRESS)
+    {
+        // Bound our array to be [0..2]
+        ++app->attribute_color %= 3;
+    }
+    if (key == GLFW_KEY_V && action == GLFW_PRESS)
+    {
+        // Bound our array to be [0..1]
+        ++app->color_space %= 2;
     }
 }
 
@@ -139,7 +176,7 @@ void Init(App* app)
     app->window = glfwCreateWindow(1600, 900, "Graphics 1", nullptr, nullptr);
     assert(app->window != nullptr);
 
-    glfwSetWindowUserPointer(app->window, &app);
+    glfwSetWindowUserPointer(app->window, app);
     glfwSetKeyCallback(app->window, KeyCallback);
 
     glfwMakeContextCurrent(app->window);
