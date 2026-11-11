@@ -52,12 +52,22 @@ void LoadMesh(Mesh* mesh, const char* path)
 
     mesh->index_count = obj_mesh->index_count;
     mesh->positions.resize(mesh->index_count);
+    mesh->normals.resize(mesh->index_count);
+    mesh->tcoords.resize(mesh->index_count);
 
     for (fastObjUInt i = 0; i < mesh->index_count; i++)
     {
         Vector3* obj_positions_buffer = (Vector3*)obj_mesh->positions;
         fastObjUInt obj_position_index = obj_mesh->indices[i].p;
         mesh->positions[i] = obj_positions_buffer[obj_position_index];
+
+        Vector3* obj_normals_buffer = (Vector3*)obj_mesh->normals;
+        fastObjUInt obj_normal_index = obj_mesh->indices[i].n;
+		mesh->normals[i] = obj_normals_buffer[obj_normal_index];
+
+        Vector2* obj_tcoords_buffer = (Vector2*)obj_mesh->texcoords;
+        fastObjUInt obj_tcoord_index = obj_mesh->indices[i].t;
+		mesh->tcoords[i] = obj_tcoords_buffer[obj_tcoord_index];
 
         // TODO -- sample normal indices and add them to the mesh's normals buffer
         // TODO -- sample tcoord indices and add them to the mesh's tcoords buffer
@@ -67,6 +77,9 @@ void LoadMesh(Mesh* mesh, const char* path)
 
     glGenVertexArrays(1, &mesh->vao);
     glGenBuffers(1, &mesh->vbo_positions);
+    //glGenBuffers(1, &mesh->vbo_normals);
+    //glGenBuffers(1, &mesh->vbo_tcoords);
+
     // TODO -- generate vbo handles for mesh normals and mesh tcoords
 
     glBindVertexArray(mesh->vao);
