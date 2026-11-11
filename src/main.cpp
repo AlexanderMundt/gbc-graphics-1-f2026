@@ -77,8 +77,8 @@ void LoadMesh(Mesh* mesh, const char* path)
 
     glGenVertexArrays(1, &mesh->vao);
     glGenBuffers(1, &mesh->vbo_positions);
-    //glGenBuffers(1, &mesh->vbo_normals);
-    //glGenBuffers(1, &mesh->vbo_tcoords);
+    glGenBuffers(1, &mesh->vbo_normals);
+    glGenBuffers(1, &mesh->vbo_tcoords);
 
     // TODO -- generate vbo handles for mesh normals and mesh tcoords
 
@@ -89,7 +89,15 @@ void LoadMesh(Mesh* mesh, const char* path)
     glBufferData(GL_ARRAY_BUFFER, mesh->positions.size() * sizeof(Vector3), mesh->positions.data(), GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
 
-    // TODO -- describe vertex buffers for normals (1) and tcoords (2)
+    glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo_normals);
+    glVertexAttribPointer(ATTRIBUTE_NORMALS, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glBufferData(GL_ARRAY_BUFFER, mesh->normals.size() * sizeof(Vector3), mesh->normals.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(1);
+
+    glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo_tcoords);
+    glVertexAttribPointer(ATTRIBUTE_TCOORDS, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glBufferData(GL_ARRAY_BUFFER, mesh->tcoords.size() * sizeof(Vector2), mesh->tcoords.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(2);
 
     glBindVertexArray(GL_NONE);
 }
