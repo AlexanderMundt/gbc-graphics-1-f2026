@@ -135,7 +135,6 @@ int main()
 
         Matrix world = MatrixIdentity();
         Matrix view = MatrixLookAt({ 0.0f, 0.0f, 2.0f }, { 0.0f, 0.0f, 0.0f }, Vector3UnitY);
-        //Matrix proj = MatrixPerspective(75.0f * DEG2RAD, 1600.0f/900.0f, 0.1f, 100.0f);
         Matrix proj = MatrixOrtho(-2.0f, 2.0f, -1.125f, 1.125f, 0.1f, 100.0f);
 		Matrix mvp = world * view * proj;
 
