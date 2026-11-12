@@ -1,8 +1,8 @@
 /*
-Author:     Alexander Mundt 101632886
-Class:      GAME2012
-Professor:  Connor Smiley
-Assignment: Assignment 3
+Completed By:   Alexander Mundt 101632886
+Class:          GAME2012
+Professor:      Connor Smiley
+Assignment:     Assignment 3
 */
 #define _CRT_SECURE_NO_WARNINGS
 
@@ -202,7 +202,7 @@ void Init(App* app)
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 #endif
 
-    app->window = glfwCreateWindow(1600, 900, "Graphics 1", nullptr, nullptr);
+    app->window = glfwCreateWindow(1600, 900, "GAME-2012 Assignment 3 - Alexander Mundt", nullptr, nullptr);
     assert(app->window != nullptr);
 
     glfwSetWindowUserPointer(app->window, app);
