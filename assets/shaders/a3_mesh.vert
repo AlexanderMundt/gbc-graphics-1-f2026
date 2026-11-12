@@ -15,12 +15,12 @@ void main()
     vec4 pos = u_transform * vec4(vertex_position, 1.0);
 
     position = pos.xyz;
-    normal = vec3(1.0, 0.0, 1.0);
-    tcoord = vec2(1.0, 1.0);
+    //normal = vec3(1.0, 0.0, 1.0);
+    //tcoord = vec2(1.0, 1.0);
 
     // Uncomment to test coloring based on vertex attributes
-    //tcoord = vertex_tcoord;
-    //normal = mat3(u_transform) * vertex_normal;
+    tcoord = vertex_tcoord;
+    normal = vertex_normal;
 
     gl_Position = pos;
 }

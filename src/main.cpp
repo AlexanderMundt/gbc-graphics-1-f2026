@@ -1,3 +1,9 @@
+/*
+Author:     Alexander Mundt 101632886
+Class:      GAME2012
+Professor:  Connor Smiley
+Assignment: Assignment 3
+*/
 #define _CRT_SECURE_NO_WARNINGS
 
 #define GLFW_INCLUDE_NONE
@@ -61,43 +67,41 @@ void LoadMesh(Mesh* mesh, const char* path)
         fastObjUInt obj_position_index = obj_mesh->indices[i].p;
         mesh->positions[i] = obj_positions_buffer[obj_position_index];
 
+        //sample normal indices and add them to the mesh's normals buffer
         Vector3* obj_normals_buffer = (Vector3*)obj_mesh->normals;
         fastObjUInt obj_normal_index = obj_mesh->indices[i].n;
 		mesh->normals[i] = obj_normals_buffer[obj_normal_index];
 
+        //sample tcoord indices and add them to the mesh's tcoords buffer
         Vector2* obj_tcoords_buffer = (Vector2*)obj_mesh->texcoords;
         fastObjUInt obj_tcoord_index = obj_mesh->indices[i].t;
 		mesh->tcoords[i] = obj_tcoords_buffer[obj_tcoord_index];
-
-        // TODO -- sample normal indices and add them to the mesh's normals buffer
-        // TODO -- sample tcoord indices and add them to the mesh's tcoords buffer
     }
 
     fast_obj_destroy(obj_mesh);
 
     glGenVertexArrays(1, &mesh->vao);
-    glGenBuffers(1, &mesh->vbo_positions);
-    glGenBuffers(1, &mesh->vbo_normals);
-    glGenBuffers(1, &mesh->vbo_tcoords);
-
-    // TODO -- generate vbo handles for mesh normals and mesh tcoords
-
     glBindVertexArray(mesh->vao);
 
+    glGenBuffers(1, &mesh->vbo_positions);
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo_positions);
     glVertexAttribPointer(ATTRIBUTE_POSITIONS, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glBufferData(GL_ARRAY_BUFFER, mesh->positions.size() * sizeof(Vector3), mesh->positions.data(), GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(ATTRIBUTE_POSITIONS);
 
+    //generate vbo handles for mesh normals 
+    glGenBuffers(1, &mesh->vbo_normals);
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo_normals);
     glVertexAttribPointer(ATTRIBUTE_NORMALS, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glBufferData(GL_ARRAY_BUFFER, mesh->normals.size() * sizeof(Vector3), mesh->normals.data(), GL_STATIC_DRAW);
-    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(ATTRIBUTE_NORMALS);
 
+    //and mesh tcoords
+    glGenBuffers(1, &mesh->vbo_tcoords);
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo_tcoords);
     glVertexAttribPointer(ATTRIBUTE_TCOORDS, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
     glBufferData(GL_ARRAY_BUFFER, mesh->tcoords.size() * sizeof(Vector2), mesh->tcoords.data(), GL_STATIC_DRAW);
-    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(ATTRIBUTE_TCOORDS);
 
     glBindVertexArray(GL_NONE);
 }
@@ -130,12 +134,16 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         Matrix world = MatrixIdentity();
+        Matrix view = MatrixLookAt({ 0.0f, 0.0f, 2.0f }, { 0.0f, 0.0f, 0.0f }, Vector3UnitY);
+        //Matrix proj = MatrixPerspective(75.0f * DEG2RAD, 1600.0f/900.0f, 0.1f, 100.0f);
+        Matrix proj = MatrixOrtho(-2.0f, 2.0f, -1.125f, 1.125f, 0.1f, 100.0f);
+		Matrix mvp = world * view * proj;
 
         glUseProgram(shader_program);
         GLint loc_transform = glGetUniformLocation(shader_program, "u_transform");
         GLint loc_style = glGetUniformLocation(shader_program, "u_style");
         GLint loc_color_space = glGetUniformLocation(shader_program, "u_color_space");
-        glUniformMatrix4fv(loc_transform, 1, GL_FALSE, MatrixToFloat(world));
+        glUniformMatrix4fv(loc_transform, 1, GL_FALSE, MatrixToFloat(mvp));
         glUniform1i(loc_style, app.attribute_color);
         glUniform1i(loc_color_space, app.color_space);
 
