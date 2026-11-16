@@ -90,6 +90,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\fast_obj.h" />
+    <ClInclude Include="inc\par_shapes.h" />
     <ClInclude Include="inc\raymath.h" />
     <ClInclude Include="src\Shader.h" />
   </ItemGroup>

@@ -38,6 +38,9 @@
     <ClInclude Include="inc\raymath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="inc\par_shapes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\a1_triangle.frag">

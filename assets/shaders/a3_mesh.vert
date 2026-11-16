@@ -8,19 +8,14 @@ out vec3 position;
 out vec3 normal;
 out vec2 tcoord;
 
-uniform mat4 u_transform;
+uniform mat4 u_world;
+uniform mat4 u_mvp;
 
 void main()
 {
-    vec4 pos = u_transform * vec4(vertex_position, 1.0);
-
-    position = pos.xyz;
-    //normal = vec3(1.0, 0.0, 1.0);
-    //tcoord = vec2(1.0, 1.0);
-
-    // Uncomment to test coloring based on vertex attributes
+    position = (u_world * vec4(vertex_position, 1.0)).xyz;
     tcoord = vertex_tcoord;
-    normal = vertex_normal;
+    normal = mat3(u_world) * vertex_normal;
 
-    gl_Position = pos;
+    gl_Position = u_mvp * vec4(vertex_position, 1.0);
 }

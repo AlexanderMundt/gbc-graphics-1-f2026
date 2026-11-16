@@ -1,9 +1,3 @@
-/*
-Completed By:   Alexander Mundt 101632886
-Class:          GAME2012
-Professor:      Connor Smiley
-Assignment:     Assignment 3
-*/
 #define _CRT_SECURE_NO_WARNINGS
 
 #define GLFW_INCLUDE_NONE
@@ -12,6 +6,9 @@ Assignment:     Assignment 3
 
 #define FAST_OBJ_IMPLEMENTATION
 #include "fast_obj.h"
+
+#define PAR_SHAPES_IMPLEMENTATION
+#include "par_shapes.h"
 
 #include <raymath.h>
 
@@ -47,19 +44,20 @@ struct Mesh
 
     GLuint vao;
     GLuint vbo_positions;
-    GLuint vbo_tcoords;
     GLuint vbo_normals;
+    GLuint vbo_tcoords;
 };
 
-void LoadMesh(Mesh* mesh, const char* path)
+void LoadMeshGpu(Mesh* mesh);
+void LoadMeshPar(Mesh* mesh, par_shapes_mesh* par);
+
+void LoadMeshObj(Mesh* mesh, const char* path)
 {
     fastObjMesh* obj_mesh;
     obj_mesh = fast_obj_read(path);
 
     mesh->index_count = obj_mesh->index_count;
     mesh->positions.resize(mesh->index_count);
-    mesh->normals.resize(mesh->index_count);
-    mesh->tcoords.resize(mesh->index_count);
 
     for (fastObjUInt i = 0; i < mesh->index_count; i++)
     {
@@ -67,48 +65,106 @@ void LoadMesh(Mesh* mesh, const char* path)
         fastObjUInt obj_position_index = obj_mesh->indices[i].p;
         mesh->positions[i] = obj_positions_buffer[obj_position_index];
 
-        //sample normal indices and add them to the mesh's normals buffer
-        Vector3* obj_normals_buffer = (Vector3*)obj_mesh->normals;
-        fastObjUInt obj_normal_index = obj_mesh->indices[i].n;
-		mesh->normals[i] = obj_normals_buffer[obj_normal_index];
-
-        //sample tcoord indices and add them to the mesh's tcoords buffer
-        Vector2* obj_tcoords_buffer = (Vector2*)obj_mesh->texcoords;
-        fastObjUInt obj_tcoord_index = obj_mesh->indices[i].t;
-		mesh->tcoords[i] = obj_tcoords_buffer[obj_tcoord_index];
+        // TODO -- sample normal indices and add them to the mesh's normals buffer
+        // TODO -- sample tcoord indices and add them to the mesh's tcoords buffer
     }
 
+    LoadMeshGpu(mesh);
     fast_obj_destroy(obj_mesh);
+}
 
+void LoadMeshPlane(Mesh* mesh)
+{
+    par_shapes_mesh* par = par_shapes_create_plane(1, 1);
+    par_shapes_translate(par, -0.5f, -0.5f, 0.0f);
+
+    LoadMeshPar(mesh, par);
+    LoadMeshGpu(mesh);
+
+    par_shapes_free_mesh(par);
+}
+
+void LoadMeshSphere(Mesh* mesh)
+{
+    par_shapes_mesh* par = par_shapes_create_parametric_sphere(8, 8);
+
+    LoadMeshPar(mesh, par);
+    LoadMeshGpu(mesh);
+
+    par_shapes_free_mesh(par);
+}
+
+void LoadMeshPar(Mesh* mesh, par_shapes_mesh* par)
+{
+    mesh->index_count = par->ntriangles * 3;
+    mesh->positions.resize(mesh->index_count);
+    mesh->normals.resize(mesh->index_count);
+    mesh->tcoords.resize(mesh->index_count);
+
+    Vector3* positions = (Vector3*)par->points;
+    Vector3* normals = (Vector3*)par->normals;
+    Vector2* tcoords = (Vector2*)par->tcoords;
+    for (int i = 0; i < mesh->index_count; i++)
+    {
+        uint16_t index = par->triangles[i];
+        Vector3 position = positions[index];
+        Vector3 normal = normals[index];
+        Vector2 tcoord = tcoords[index];
+
+        mesh->positions[i] = position;
+        mesh->normals[i] = normal;
+        mesh->tcoords[i] = tcoord;
+    }
+}
+
+void LoadMeshGpu(Mesh* mesh)
+{
     glGenVertexArrays(1, &mesh->vao);
+    glGenBuffers(1, &mesh->vbo_positions);
+    glGenBuffers(1, &mesh->vbo_normals);
+    glGenBuffers(1, &mesh->vbo_tcoords);
+
     glBindVertexArray(mesh->vao);
 
-    glGenBuffers(1, &mesh->vbo_positions);
+    // Note: positions, normals, and tcoords should be identical in size if loaded correctly!
+    // Future improvement: optimize with index buffer (glElementArrayBuffer), but probably not cause that's more work 
+    // TODO -- Change to assert after A3 late submission expires
+
+    assert(!mesh->positions.empty());
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo_positions);
     glVertexAttribPointer(ATTRIBUTE_POSITIONS, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glBufferData(GL_ARRAY_BUFFER, mesh->positions.size() * sizeof(Vector3), mesh->positions.data(), GL_STATIC_DRAW);
-    glEnableVertexAttribArray(ATTRIBUTE_POSITIONS);
+    glEnableVertexAttribArray(0);
 
-    //generate vbo handles for mesh normals 
-    glGenBuffers(1, &mesh->vbo_normals);
-    glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo_normals);
-    glVertexAttribPointer(ATTRIBUTE_NORMALS, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glBufferData(GL_ARRAY_BUFFER, mesh->normals.size() * sizeof(Vector3), mesh->normals.data(), GL_STATIC_DRAW);
-    glEnableVertexAttribArray(ATTRIBUTE_NORMALS);
+    if (!mesh->normals.empty())
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo_normals);
+        glVertexAttribPointer(ATTRIBUTE_NORMALS, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glBufferData(GL_ARRAY_BUFFER, mesh->normals.size() * sizeof(Vector3), mesh->normals.data(), GL_STATIC_DRAW);
+        glEnableVertexAttribArray(1);
+    }
+    else
+        printf("Warning: Uploading a mesh without normals to the GPU!\n");
 
-    //and mesh tcoords
-    glGenBuffers(1, &mesh->vbo_tcoords);
-    glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo_tcoords);
-    glVertexAttribPointer(ATTRIBUTE_TCOORDS, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glBufferData(GL_ARRAY_BUFFER, mesh->tcoords.size() * sizeof(Vector2), mesh->tcoords.data(), GL_STATIC_DRAW);
-    glEnableVertexAttribArray(ATTRIBUTE_TCOORDS);
+    if (!mesh->tcoords.empty())
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo_tcoords);
+        glVertexAttribPointer(ATTRIBUTE_TCOORDS, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glBufferData(GL_ARRAY_BUFFER, mesh->tcoords.size() * sizeof(Vector2), mesh->tcoords.data(), GL_STATIC_DRAW);
+        glEnableVertexAttribArray(2);
+    }
+    else
+        printf("Warning: Uploading a mesh without tcoords to the GPU!\n");
 
     glBindVertexArray(GL_NONE);
 }
 
-void UnloadMesh(Mesh* mesh)
+void UnloadMeshGpu(Mesh* mesh)
 {
-
+    glDeleteBuffers(1, &mesh->vbo_positions);
+    glDeleteBuffers(1, &mesh->vbo_normals);
+    glDeleteBuffers(1, &mesh->vbo_tcoords);
+    glDeleteVertexArrays(1, &mesh->vao);
 }
 
 void Init(App* app);
@@ -118,9 +174,13 @@ int main()
     App app{};
     Init(&app);
 
-    Mesh meshes[2];
-    LoadMesh(&meshes[0], "./assets/meshes/plane.obj");
-    LoadMesh(&meshes[1], "./assets/meshes/head.obj");
+    int width, height;
+    glfwGetWindowSize(app.window, &width, &height);
+
+    Mesh meshes[3];
+    LoadMeshPlane(&meshes[0]);
+    LoadMeshSphere(&meshes[1]);
+    LoadMeshObj(&meshes[2], "./assets/meshes/head.obj");
 
     GLuint vs_shader = LoadShader(GL_VERTEX_SHADER, "./assets/shaders/a3_mesh.vert");
     GLuint fs_shader = LoadShader(GL_FRAGMENT_SHADER, "./assets/shaders/a3_mesh.frag");
@@ -133,16 +193,22 @@ int main()
         glClearDepth(1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        Matrix world = MatrixIdentity();
-        Matrix view = MatrixLookAt({ 0.0f, 0.0f, 2.0f }, { 0.0f, 0.0f, 0.0f }, Vector3UnitY);
-        Matrix proj = MatrixOrtho(-2.0f, 2.0f, -1.125f, 1.125f, 0.1f, 100.0f);
-		Matrix mvp = world * view * proj;
+        static float animate_z = 0.0f;
+
+        Matrix world = MatrixRotateY(glfwGetTime() * 100.0f * DEG2RAD) * MatrixTranslate(0.0f, 0.0f, 5.0f + (sinf(glfwGetTime()) * 3.0f) * animate_z);
+        Matrix view = MatrixLookAt({ 0.0f, 0.0f, 10.0f }, { 0.0f, 0.0f, 0.0f }, Vector3UnitY);
+        //Matrix proj = MatrixOrtho(-10.0, 10.0, -10.0, 10.0, 0.1, 10.0);                   // 2D projection (objects appear the same size regardless of distance from the camera)
+        Matrix proj = MatrixPerspective(PI * 0.5f, (width / (float)height), 0.1, 100.0);    // 3D projection (objects closer to the camera appear bigger)
+        Matrix mvp = world * view * proj;
 
         glUseProgram(shader_program);
-        GLint loc_transform = glGetUniformLocation(shader_program, "u_transform");
+        GLint loc_world = glGetUniformLocation(shader_program, "u_world");
+        GLint loc_mvp = glGetUniformLocation(shader_program, "u_mvp");
         GLint loc_style = glGetUniformLocation(shader_program, "u_style");
         GLint loc_color_space = glGetUniformLocation(shader_program, "u_color_space");
-        glUniformMatrix4fv(loc_transform, 1, GL_FALSE, MatrixToFloat(mvp));
+
+        glUniformMatrix4fv(loc_world, 1, GL_FALSE, MatrixToFloat(world));
+        glUniformMatrix4fv(loc_mvp, 1, GL_FALSE, MatrixToFloat(mvp));
         glUniform1i(loc_style, app.attribute_color);
         glUniform1i(loc_color_space, app.color_space);
 
@@ -170,18 +236,15 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
     if (key == GLFW_KEY_TAB && action == GLFW_PRESS)
     {
-        // Bound our array to be [0..1]
-        ++app->object_index %= 2;
+        ++app->object_index %= 3;
     }
 
     if (key == GLFW_KEY_C && action == GLFW_PRESS)
     {
-        // Bound our array to be [0..2]
         ++app->attribute_color %= 3;
     }
     if (key == GLFW_KEY_V && action == GLFW_PRESS)
     {
-        // Bound our array to be [0..1]
         ++app->color_space %= 2;
     }
 }
@@ -201,7 +264,7 @@ void Init(App* app)
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 #endif
 
-    app->window = glfwCreateWindow(1600, 900, "GAME-2012 Assignment 3 - Alexander Mundt", nullptr, nullptr);
+    app->window = glfwCreateWindow(1600, 900, "Graphics 1", nullptr, nullptr);
     assert(app->window != nullptr);
 
     glfwSetWindowUserPointer(app->window, app);
