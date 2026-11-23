@@ -6,6 +6,7 @@ in vec2 tcoord;
 
 uniform int u_style;
 uniform int u_color_space;
+uniform sampler2D u_sampler;
 
 out vec4 frag_colour;
 
@@ -24,6 +25,10 @@ void main()
 
         case 2:
             color = vec3(tcoord, 0.0);
+            break;
+
+        case 3:
+            color = texture(u_sampler, tcoord).xyz;
             break;
     }
     

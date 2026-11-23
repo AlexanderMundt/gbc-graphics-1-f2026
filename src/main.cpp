@@ -10,6 +10,12 @@
 #define PAR_SHAPES_IMPLEMENTATION
 #include "par_shapes.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 #include <raymath.h>
 
 #include <cassert>
@@ -58,15 +64,22 @@ void LoadMeshObj(Mesh* mesh, const char* path)
 
     mesh->index_count = obj_mesh->index_count;
     mesh->positions.resize(mesh->index_count);
+    mesh->normals.resize(mesh->index_count);
+    mesh->tcoords.resize(mesh->index_count);
 
     for (fastObjUInt i = 0; i < mesh->index_count; i++)
     {
         Vector3* obj_positions_buffer = (Vector3*)obj_mesh->positions;
-        fastObjUInt obj_position_index = obj_mesh->indices[i].p;
-        mesh->positions[i] = obj_positions_buffer[obj_position_index];
+        Vector3* obj_normals_buffer = (Vector3*)obj_mesh->normals;
+        Vector2* obj_tcoords_buffer = (Vector2*)obj_mesh->texcoords;
 
-        // TODO -- sample normal indices and add them to the mesh's normals buffer
-        // TODO -- sample tcoord indices and add them to the mesh's tcoords buffer
+        fastObjUInt obj_position_index = obj_mesh->indices[i].p;
+        fastObjUInt obj_normal_index = obj_mesh->indices[i].n;
+        fastObjUInt obj_tcoord_index = obj_mesh->indices[i].t;
+
+        mesh->positions[i] = obj_positions_buffer[obj_position_index];
+        mesh->normals[i] = obj_normals_buffer[obj_normal_index];
+        mesh->tcoords[i] = obj_tcoords_buffer[obj_tcoord_index];
     }
 
     LoadMeshGpu(mesh);
@@ -167,11 +180,48 @@ void UnloadMeshGpu(Mesh* mesh)
     glDeleteVertexArrays(1, &mesh->vao);
 }
 
+struct Color
+{
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+    unsigned char a;
+};
+
+struct Image
+{
+    std::vector<Color> pixels;
+    int width;
+    int height;
+};
+
+Image GenImageTest()
+{
+    Image img{};
+    img.width = 512;
+    img.height = 512;
+
+    img.pixels.resize(img.width * img.height);
+    for (int x = 0; x < img.width; x++)
+    {
+        for (int y = 0; y < img.height; y++)
+        {
+            Color red = { 255, 0, 0, 255 };
+            Color blue = { 0, 0, 255, 255 };
+            Color color = y >= img.height / 2 ? red : blue;
+            img.pixels[y * img.width + x] = color;
+        }
+    }
+
+    return img;
+}
+
 void Init(App* app);
 
 int main()
 {
     App app{};
+    app.attribute_color = ATTRIBUTE_TCOORDS + 1;
     Init(&app);
 
     int width, height;
@@ -186,6 +236,35 @@ int main()
     GLuint fs_shader = LoadShader(GL_FRAGMENT_SHADER, "./assets/shaders/a3_mesh.frag");
     GLuint shader_program = LoadProgram(vs_shader, fs_shader);
 
+    Image test_image = GenImageTest();
+    stbi_write_png("./assets/textures/test.png", test_image.width, test_image.height, 4, test_image.pixels.data(), 0);
+    stbi__vertical_flip(test_image.pixels.data(), test_image.width, test_image.height, sizeof(Color));
+    // ^ hack to flip our generated image ([0, 0] in image memory is top-left, but [0, 0] in OpenGL texture-space is bottom-left)
+
+    stbi_set_flip_vertically_on_load(1);
+    int head_image_width, head_image_height, head_image_channels;
+    stbi_uc* head_image_memory = stbi_load("./assets/textures/head.png", &head_image_width, &head_image_height, &head_image_channels, 4);
+
+    GLuint test_texture;
+    glGenTextures(1, &test_texture);
+    glBindTexture(GL_TEXTURE_2D, test_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, test_image.width, test_image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, test_image.pixels.data());
+    glBindTexture(GL_TEXTURE_2D, GL_NONE);
+
+    GLuint head_texture;
+    glGenTextures(1, &head_texture);
+    glBindTexture(GL_TEXTURE_2D, head_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, head_image_width, head_image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, head_image_memory);
+    glBindTexture(GL_TEXTURE_2D, GL_NONE);
+
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(app.window))
     {
@@ -195,7 +274,9 @@ int main()
 
         static float animate_z = 0.0f;
 
-        Matrix world = MatrixRotateY(glfwGetTime() * 100.0f * DEG2RAD) * MatrixTranslate(0.0f, 0.0f, 5.0f + (sinf(glfwGetTime()) * 3.0f) * animate_z);
+        Matrix translation = MatrixTranslate(0.0f, 0.0f, 5.0f + (sinf(glfwGetTime()) * 3.0f) * animate_z);;
+        Matrix rotation = MatrixRotateY(glfwGetTime() * 00.0f * DEG2RAD);
+        Matrix world = rotation * translation;
         Matrix view = MatrixLookAt({ 0.0f, 0.0f, 10.0f }, { 0.0f, 0.0f, 0.0f }, Vector3UnitY);
         //Matrix proj = MatrixOrtho(-10.0, 10.0, -10.0, 10.0, 0.1, 10.0);                   // 2D projection (objects appear the same size regardless of distance from the camera)
         Matrix proj = MatrixPerspective(PI * 0.5f, (width / (float)height), 0.1, 100.0);    // 3D projection (objects closer to the camera appear bigger)
@@ -206,21 +287,31 @@ int main()
         GLint loc_mvp = glGetUniformLocation(shader_program, "u_mvp");
         GLint loc_style = glGetUniformLocation(shader_program, "u_style");
         GLint loc_color_space = glGetUniformLocation(shader_program, "u_color_space");
+        GLint loc_sampler = glGetUniformLocation(shader_program, "u_sampler");
 
         glUniformMatrix4fv(loc_world, 1, GL_FALSE, MatrixToFloat(world));
         glUniformMatrix4fv(loc_mvp, 1, GL_FALSE, MatrixToFloat(mvp));
         glUniform1i(loc_style, app.attribute_color);
         glUniform1i(loc_color_space, app.color_space);
 
+        int texture_unit = 15;
+        glUniform1i(loc_sampler, texture_unit);
+
         const Mesh& mesh = meshes[app.object_index];
         glBindVertexArray(mesh.vao);
 
+        glActiveTexture(GL_TEXTURE0 + texture_unit);    // 0 + 15 == 15
+        glBindTexture(GL_TEXTURE_2D, test_texture);     // texture is bound to currently active texture unit (15)
         glDrawArrays(GL_TRIANGLES, 0, mesh.index_count);
+        glActiveTexture(GL_TEXTURE0);                   // 0 is the default active texture unit (reset to default the same way we unbind buffers and textures)
+        glBindTexture(GL_TEXTURE_2D, GL_NONE);
 
         glfwSwapBuffers(app.window);
         glfwPollEvents();
     }
 
+    // TODO (optional): make image loading function that frees memory after uploading to the GPU
+    stbi_image_free(head_image_memory);
     glfwTerminate();
     return 0;
 }
@@ -241,7 +332,7 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
     if (key == GLFW_KEY_C && action == GLFW_PRESS)
     {
-        ++app->attribute_color %= 3;
+        ++app->attribute_color %= 4;
     }
     if (key == GLFW_KEY_V && action == GLFW_PRESS)
     {

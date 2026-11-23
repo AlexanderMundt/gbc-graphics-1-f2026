@@ -15,7 +15,7 @@ void main()
 {
     position = (u_world * vec4(vertex_position, 1.0)).xyz;
     tcoord = vertex_tcoord;
-    normal = mat3(u_world) * vertex_normal;
+    normal = normalize(transpose(inverse(mat3(u_world))) * vertex_normal);
 
     gl_Position = u_mvp * vec4(vertex_position, 1.0);
 }
