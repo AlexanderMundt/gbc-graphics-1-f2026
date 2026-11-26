@@ -104,6 +104,25 @@
     <None Include="assets\shaders\a3_mesh.frag" />
     <None Include="assets\shaders\a3_mesh.vert" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="assets\textures\head.png" />
+    <Image Include="assets\textures\test.png" />
+    <Image Include="assets\textures\trees.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="assets\meshes\head.obj">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="assets\meshes\monkey.obj">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="assets\meshes\plane.obj">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="assets\meshes\trees.obj">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

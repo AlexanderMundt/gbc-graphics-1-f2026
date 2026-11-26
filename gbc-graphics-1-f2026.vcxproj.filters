@@ -67,5 +67,28 @@
     <None Include="assets\shaders\a3_mesh.vert">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="assets\meshes\head.obj">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="assets\meshes\monkey.obj">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="assets\meshes\plane.obj">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="assets\meshes\trees.obj">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="assets\textures\head.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\textures\test.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\textures\trees.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>
